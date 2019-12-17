@@ -89,17 +89,18 @@ def draw_contour(img, lane):
     for i in range(len(right) - 1):
         img[right[i][0] + int(height/3), right[i][1]-1] = (0, 255, 0)
 
-    obs_left, obs_right = dodge(left, right, img)
+    obs_left, obs_right = detect_obs(left, right, img)
     for i in obs_left:
-        img[left[i][0] + int(height/3) , left[i][1]] = (255, 0, 255)
+        img[left[i][0] + int(height/3), left[i][1]] = (255, 0, 255)
     for i in obs_right:
         img[right[i][0] + int(height/3), right[i][1] - 1] = (0, 255, 255)
 
+    cv2.imshow('lane', lane)
     cv2.imshow("contour", img)
     cv2.waitKey(0)
 
 
-def dodge(left, right, img):
+def detect_obs(left, right, img):
     dleft = []
     dright = []
     height, width = img.shape[:2]
@@ -117,7 +118,7 @@ def dodge(left, right, img):
 
         dleft.append([dy / 20, dx / 20])
 
-        if (5 * dy) < dx:
+        if (4 * dy) < dx:
             print('obstacles with slope of ' + str(dy/(dx+0.1)) + ' at ' + str(left[i]))
             obstacle_arr.append(i)
 
@@ -134,7 +135,7 @@ def dodge(left, right, img):
 
         dright.append([dy / 20, dx / 20])
 
-        if (5 * dy) < dx:
+        if (4 * dy) < dx:
             print('obstacles with slope of ' + str(dy / (dx + 0.1)) + ' at ' + str(right[i]))
             obs_right.append(i)
 
@@ -143,5 +144,6 @@ def dodge(left, right, img):
 
 def decision(img):
     lane = process.detect_lane(img)
+    draw_contour(img, lane)
     velo, angle = cur_pos(lane)
     return velo, angle

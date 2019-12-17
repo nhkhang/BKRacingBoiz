@@ -4,8 +4,8 @@ import gmm_train
 import preprocess
 import time
 
-LIST = [1, 43, 80]
-PIC_ORD = 1
+LIST = [87]
+PIC_ORD = 87
 INPUT = cv2.imread('road_pic/lane_' + str(PIC_ORD)+'.jpg')
 
 
@@ -26,24 +26,30 @@ def cluster_gmm(img, label):
 
     return cluster_img
 
-def remove_backfround(img, label, black_point):
-    img[label == label[black_point]] = 255
-    _, thresh = cv2.threshold(src=img, thresh=254, maxval=255, type=cv2.THRESH_BINARY_INV)
-
-    n_comps, black_components = cv2.connectedComponents(thresh)
-    for comp_label in range(n_comps):
-        comp = np.zeros_like(thresh)
-        comp[black_components == comp_label] = 1
-        if cv2.countNonZero(thresh) < 2000:
-            thresh[black_components == comp_label] = 0
-
-    return thresh
-
 def morph_lane(bin_img):
     kernel = np.ones((3, 3), np.uint8)
     after_erode = cv2.erode(bin_img, kernel, iterations=3)
     after_dilate_erode = cv2.dilate(after_erode, kernel, iterations=5)
     return after_dilate_erode
+
+def remove_backfround(img, label, black_point):
+    origin = img.copy()
+    img[label == label[black_point]] = 255
+
+
+    _, thresh = cv2.threshold(src=img, thresh=254, maxval=255, type=cv2.THRESH_BINARY_INV)
+    n_comps, black_components = cv2.connectedComponents(thresh) # return number of components and pixel-label of image
+    for comp_label in range(n_comps):
+        comp = np.zeros_like(thresh)
+        comp[black_components == comp_label] = 1
+        if cv2.countNonZero(comp) < 2000:
+            thresh[black_components == comp_label] = 0
+
+    fill_black = black_component_2white(thresh)
+    # compare = np.hstack((origin, img, thresh, fill_black))
+    # cv2.imshow('input | black 2 white | ', compare)
+    # cv2.waitKey(0)
+    return fill_black
 
 def black_component_2white(img):
     _, thresh = cv2.threshold(img, 60, 255, cv2.THRESH_BINARY_INV)
@@ -57,15 +63,18 @@ def black_component_2white(img):
     return thresh
 
 def road_component(lane_morph):
-    n_comps, lane_components = cv2.connectedComponents(lane_morph)
-
+    _, thresh_white = cv2.threshold(src=lane_morph, thresh=254, maxval=255, type=cv2.THRESH_BINARY_INV)
+    n_comps, lane_components = cv2.connectedComponents(thresh_white)
+    origin = lane_morph.copy()
     for comp in range(n_comps):
         mask = np.zeros_like(lane_morph)
         mask[lane_components == comp] = 255
         # note: adjust the number
         if cv2.countNonZero(mask) < 256:
             lane_morph = cv2.bitwise_and(lane_morph, lane_morph, mask=~mask)
-
+    # compare = np.hstack((origin, lane_morph))
+    # cv2.imshow('compare', compare)
+    # cv2.waitKey(0)
     lane = black_component_2white(lane_morph)
     return lane
 
@@ -78,7 +87,7 @@ def detect_lane(img):
     lane_cluster = road_component(lane_morph)
 
     if __name__ == '__main__':
-        combine_step = np.hstack((after_process, lane_bin, lane_cluster))
+        combine_step = np.hstack((after_process, lane_bin, lane_morph, lane_cluster))
         return combine_step
 
     return lane_cluster
