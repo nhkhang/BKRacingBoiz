@@ -45,6 +45,9 @@ def preprocess(img):
     x, y = res.shape[0] // 3, res.shape[1] // 3
     mask[x: x * 2, y: y * 2] = 1
     min_, _, _, _ = cv2.minMaxLoc(res - 90, mask=mask)
-    res += np.uint(110 - int(min_ + 90))
+    min_ -= 20
+    print(min_)
+    res += np.uint8(min_)
+    print(res[0][0] + 20 - min_)
     return res, black_point
 

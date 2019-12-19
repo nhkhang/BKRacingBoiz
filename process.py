@@ -4,8 +4,8 @@ import gmm_train
 import preprocess
 import time
 
-LIST = [87]
-PIC_ORD = 87
+LIST = [140]
+PIC_ORD = 140
 INPUT = cv2.imread('road_pic/lane_' + str(PIC_ORD)+'.jpg')
 
 
@@ -82,6 +82,8 @@ def detect_lane(img):
     after_process, black_point = preprocess.preprocess(img)
     label = gmm_train.predict(after_process)
     cluster = cluster_gmm(img, label)
+    cv2.imshow('cluster', cluster)
+    cv2.waitKey(0)
     lane_bin = remove_backfround(after_process, label, black_point)
     lane_morph = morph_lane(lane_bin)
     lane_cluster = road_component(lane_morph)

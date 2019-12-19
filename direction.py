@@ -46,15 +46,37 @@ def detect_lane_contour(img):
 
     img_padding = np.hstack((padding, img, padding))
 
-    right_lane = [[height - 10, width - 1]]
-    left_lane = [[height - 10, 1]]
+    right_lane = []
+    left_lane = []
+
+    for i in range(width):
+        if img_padding[height - 1][width - i] != 0:
+            if i > 0:
+                right_lane.append([height - 1, width - i])
+            else:
+                for j in range(height // 2, height):
+                    if img_padding[j][width] != 0:
+                        right_lane.append([j, width])
+                        break
+            break
+
+    for i in range(1, width):
+        if img_padding[height-1][i] != 0:
+            if i > 1:
+                left_lane.append([height-1, i])
+            else:
+                for j in range(height // 2, height):
+                    if img_padding[j][1] != 0:
+                        left_lane.append([j, 1])
+                        break
+            break
 
     # right and left lane
-    while left_lane[-1][0] and left_lane[-1][1] < right_lane[-1][1]:
+    while 8 * left_lane[-1][0] > height and left_lane[-1][1] < right_lane[-1][1]:
         yy = right_lane[-1][0]
-        while right_lane[-1][1] != left_lane[-1][1] and right_lane[-1][0] == yy:
+        while right_lane[-1][1] != left_lane[-1][1] and right_lane[-1][0] >= yy:
             right_lane.append(choose_with_kernel(img_padding, "right", right_lane[-1][0], right_lane[-1][1]))
-        while left_lane[-1][1] != right_lane[-1][1] and left_lane[-1][0] == yy:
+        while left_lane[-1][1] != right_lane[-1][1] and left_lane[-1][0] >= yy:
             left_lane.append(choose_with_kernel(img_padding, "left", left_lane[-1][0], left_lane[-1][1]))
 
     return left_lane, right_lane
@@ -97,30 +119,19 @@ def draw_contour(img, lane):
 
     cv2.imshow('lane', lane)
     cv2.imshow("contour", img)
-    cv2.waitKey(0)
 
 
 def detect_obs(left, right, img):
-    dleft = []
-    dright = []
-    height, width = img.shape[:2]
     n = len(left)
-    obstacle_arr = []
+    obs_left = []
 
-    for i in range(0, n):
-        if n < i + 21:
-            break
+    for i in range(n-20):
         dy = 0
-        dx = 0
-        for j in range(1, 21):
-            dy += (left[i][0] - left[i + j][0]) / j
-            dx += (left[i + j][1] - left[i][1]) / j
+        for j in range(i + 1, i + 21):
+            dy += (left[i][0] - left[j][0]) / ((left[j][1] - left[i][1])+0.1)
 
-        dleft.append([dy / 20, dx / 20])
-
-        if (4 * dy) < dx:
-            print('obstacles with slope of ' + str(dy/(dx+0.1)) + ' at ' + str(left[i]))
-            obstacle_arr.append(i)
+        if dy < 4:
+            obs_left.append(i)
 
     n = len(right)
     obs_right = []
@@ -133,13 +144,18 @@ def detect_obs(left, right, img):
             dy += (right[i][0] - right[i + j][0]) / j
             dx += (right[i][1] - right[i + j][1]) / j
 
-        dright.append([dy / 20, dx / 20])
-
         if (4 * dy) < dx:
-            print('obstacles with slope of ' + str(dy / (dx + 0.1)) + ' at ' + str(right[i]))
             obs_right.append(i)
 
-    return obstacle_arr, obs_right
+    return obs_left, obs_right
+
+
+def angle_calculate(right, left):
+    left_grad = left[-1] - left[0]
+    right_grad = right[-1] - right[0]
+    grad = left_grad + right_grad
+
+    return np.arctan(grad[1] / grad[0])
 
 
 def decision(img):
