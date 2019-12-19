@@ -4,7 +4,7 @@ import gmm_train
 import direction
 import sys
 
-LIST = [138, 139, 140]
+LIST = [138, 139, 188]
 PIC_ORD = 87
 VID_SRC = 'public4.mp4'
 TEST_SRC = 'road_pic/lane_'+ str(PIC_ORD) + '.jpg'
@@ -37,4 +37,4 @@ def test():
     # direction.decision(img)
 
 if __name__ == '__main__':
-    test()
+    main()

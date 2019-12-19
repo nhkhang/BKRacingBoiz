@@ -53,26 +53,36 @@ def detect_lane_contour(img):
         if img_padding[height - 1][width - i] != 0:
             if i > 0:
                 right_lane.append([height - 1, width - i])
-            else:
-                for j in range(height // 2, height):
-                    if img_padding[j][width] != 0:
-                        right_lane.append([j, width])
-                        break
+                break
+
+            for j in range(2, height):
+                if img_padding[height - j][width] == 0:
+                    right_lane.append([height - j + 1, width])
+                    break
+
+            if len(right_lane) == 0:
+                right_lane.append([1, width])
+
             break
 
     for i in range(1, width):
         if img_padding[height-1][i] != 0:
             if i > 1:
                 left_lane.append([height-1, i])
-            else:
-                for j in range(height // 2, height):
-                    if img_padding[j][1] != 0:
-                        left_lane.append([j, 1])
-                        break
+                break
+
+            for j in range(2, height):
+                if img_padding[height - j][1] == 0:
+                    left_lane.append([height - j + 1, 1])
+                    break
+
+            if len(left_lane) == 0:
+                left_lane.append([1, 1])
+
             break
 
     # right and left lane
-    while 8 * left_lane[-1][0] > height and left_lane[-1][1] < right_lane[-1][1]:
+    while left_lane[-1][0] > 0 and left_lane[-1][1] < right_lane[-1][1]:
         yy = right_lane[-1][0]
         while right_lane[-1][1] != left_lane[-1][1] and right_lane[-1][0] >= yy:
             right_lane.append(choose_with_kernel(img_padding, "right", right_lane[-1][0], right_lane[-1][1]))
@@ -122,29 +132,18 @@ def draw_contour(img, lane):
 
 
 def detect_obs(left, right, img):
-    n = len(left)
     obs_left = []
+    for i in range(len(left) - 20):
+        dy = (left[i][0] - left[i + 20][0]) / (left[i + 20][1] - left[i][1] + 0.1)
 
-    for i in range(n-20):
-        dy = 0
-        for j in range(i + 1, i + 21):
-            dy += (left[i][0] - left[j][0]) / ((left[j][1] - left[i][1])+0.1)
-
-        if dy < 4:
+        if dy < 0.2:
             obs_left.append(i)
 
-    n = len(right)
     obs_right = []
-    for i in range(0, n):
-        if n < i + 21:
-            break
-        dy = 0
-        dx = 0
-        for j in range(1, 21):
-            dy += (right[i][0] - right[i + j][0]) / j
-            dx += (right[i][1] - right[i + j][1]) / j
+    for i in range(len(right) - 20):
+        dy = (right[i][0] - right[i + 20][0]) / (right[i][1] - right[i + 20][1] + 0.1)
 
-        if (4 * dy) < dx:
+        if dy < 0.2:
             obs_right.append(i)
 
     return obs_left, obs_right

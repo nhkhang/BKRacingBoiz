@@ -38,16 +38,8 @@ def data_preprocess(file_name):
 
 def preprocess(img):
     res = resize(img, 'none')
+
     res, black_point = oversaturated_filter(res)
     res = cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
 
-    mask = np.zeros(res.shape, dtype=np.uint8)
-    x, y = res.shape[0] // 3, res.shape[1] // 3
-    mask[x: x * 2, y: y * 2] = 1
-    min_, _, _, _ = cv2.minMaxLoc(res - 90, mask=mask)
-    min_ -= 20
-    print(min_)
-    res += np.uint8(min_)
-    print(res[0][0] + 20 - min_)
     return res, black_point
-
