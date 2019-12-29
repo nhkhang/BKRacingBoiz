@@ -121,17 +121,17 @@ def draw_contour(img, lane):
     for i in range(len(right) - 1):
         img[right[i][0] + int(height/3), right[i][1]-1] = (0, 255, 0)
 
-    obs_left, obs_right = detect_obs(left, right, img)
-    for i in obs_left:
-        img[left[i][0] + int(height/3), left[i][1]] = (255, 0, 255)
-    for i in obs_right:
-        img[right[i][0] + int(height/3), right[i][1] - 1] = (0, 255, 255)
+    obs_left, obs_right = detect_obs(left, right)
+    # for i in obs_left:
+    #     img[left[i][0] + int(height/3), left[i][1]] = (255, 0, 255)
+    # for i in obs_right:
+    #     img[right[i][0] + int(height/3), right[i][1] - 1] = (255, 0, 255)
 
-    cv2.imshow('lane', lane)
-    cv2.imshow("contour", img)
+    # cv2.imshow('lane', lane)
+    # cv2.imshow("contour", img)
 
 
-def detect_obs(left, right, img):
+def detect_obs(left, right):
     obs_left = []
     for i in range(len(left) - 20):
         dy = (left[i][0] - left[i + 20][0]) / (left[i + 20][1] - left[i][1] + 0.1)
@@ -160,5 +160,7 @@ def angle_calculate(right, left):
 def decision(img):
     lane = process.detect_lane(img)
     draw_contour(img, lane)
-    velo, angle = cur_pos(lane)
+    left, right = detect_lane_contour(img)
+    velo = 40
+    angle = angle_calculate(right, left)
     return velo, angle

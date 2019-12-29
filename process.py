@@ -36,7 +36,6 @@ def remove_backfround(img, label, black_point):
     origin = img.copy()
     img[label == label[black_point]] = 255
 
-
     _, thresh = cv2.threshold(src=img, thresh=254, maxval=255, type=cv2.THRESH_BINARY_INV)
     n_comps, black_components = cv2.connectedComponents(thresh) # return number of components and pixel-label of image
     for comp_label in range(n_comps):
@@ -79,16 +78,21 @@ def road_component(lane_morph):
     return lane
 
 def detect_lane(img):
+    start = time.time()
     after_process, black_point = preprocess.preprocess(img)
-    label = gmm_train.predict(after_process)
-    cluster = cluster_gmm(img, label)
+    label = gmm_train.predict(after_process) # ok
+    # cluster = cluster_gmm(img, label)
+    start_rm_bkgr = time.time()
     lane_bin = remove_backfround(after_process, label, black_point)
+    print("Remove background in " + str(time.time() - start_rm_bkgr))
+    morph_cluster = time.time()
     lane_morph = morph_lane(lane_bin)
     lane_cluster = road_component(lane_morph)
-
-    if __name__ == '__main__':
-        combine_step = np.hstack((after_process, lane_bin, lane_morph, lane_cluster))
-        return combine_step
+    print("morph and road cluster in " + str(time.time() - morph_cluster))
+    print("Detect lane in " + str(time.time() - start))
+    # if __name__ == '__main__':
+    #     combine_step = np.hstack((after_process, lane_bin, lane_morph, lane_cluster))
+    #     return combine_step
 
     return lane_cluster
 

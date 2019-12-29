@@ -38,8 +38,8 @@ def data_preprocess(file_name):
 
 def preprocess(img):
     res = resize(img, 'none')
-
+    start = time.time()
     res, black_point = oversaturated_filter(res)
     res = cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
-
+    print("Preprocessing in " + str(time.time() - start))
     return res, black_point
