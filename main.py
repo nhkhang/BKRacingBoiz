@@ -5,7 +5,7 @@ import direction
 import sys
 import time
 
-LIST = [78, 95, 106]
+LIST = [258, 251, 211]
 PIC_ORD = 87
 VID_SRC = 'public4.mp4'
 TEST_SRC = 'road_pic/lane_'+ str(PIC_ORD) + '.jpg'

@@ -16,7 +16,7 @@ def oversaturated_filter(img):
 
 def resize(img, type):
     if type == 'dataset':
-        return img[30: 230, 10:310]
+        return img[20: 238, :318]
 
     return img[img.shape[0] // 3:]
 
@@ -27,11 +27,11 @@ def data_preprocess(file_name):
     res, _ = oversaturated_filter(res)
     res = cv2.cvtColor(res, cv2.COLOR_RGB2GRAY)
 
-    mask = np.zeros(res.shape, dtype=np.uint8)
-    x, y = res.shape[0]//3, res.shape[1]//3
-    mask[x: x*2, y: y*2] = 1
-    min_, _, _, _ = cv2.minMaxLoc(res-90, mask=mask)
-    res += np.uint(110 - int(min_+90))
+    # mask = np.zeros(res.shape, dtype=np.uint8)
+    # x, y = res.shape[0]//3, res.shape[1]//3
+    # mask[x: x*2, y: y*2] = 1
+    # min_, _, _, _ = cv2.minMaxLoc(res-90, mask=mask)
+    # res += np.uint(110 - int(min_+90))
     return res
 
 def preprocess(img):

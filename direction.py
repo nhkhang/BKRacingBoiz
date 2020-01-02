@@ -4,58 +4,7 @@ import process
 from collections import deque
 
 
-def cur_pos(img):
-    height, width = img.shape[:2]
-    count_black = 0
-    count_road = 0
-    angle = 0
-    count_black_left = 0
-
-    for i in range(width):
-        if img[height-1][width - i - 1] != 0:
-            count_black = i
-            break
-
-    for i in range(width):
-        if img[height - 1][i] != 0:
-            count_black_left = i
-            break
-
-    if count_black > 50 and count_black_left == 0:
-        # right
-        angle += 0.45
-
-    elif count_black == 0 and count_black_left > 50:
-        # maybe left
-        # for j in range(height):
-        #     if img[height - 1 - j][width-1] == 0:
-        #         count_road = j
-        #         break
-        # if count_road > 70:
-        #     # left
-        angle += -0.45
-
-    velo = 60
-    return velo, angle
-
-def lane_pos(right, left, img):
-    # count_right, count_left = 0
-    # height, width = img.shape[:2]
-    # check_area = int(height/3)
-    #
-    # for i in range(check_area):
-    #     if right[i][1] == width - 1:
-    #         count_right += 1
-    #     if left[i][1] == 0:
-    #         count_left += 1
-    #
-    # if abs(count_left - count_right) > check_area / 2:
-    #     if count_right > count_left:
-    #         return 'right'
-    #     else:
-    #         return 'left'
-    # else:
-    #     return 'mid'
+def lane_pos(right, left):
     if right[0][1] - left[0][1] < 0:
         return -1
     return right[0][1] - left[0][1] > 0
@@ -70,11 +19,11 @@ def dodge(left, right, obs):
     turn = 0.2
 
     if obs[0]:
-        if lane_pos(right, left, None) == 1:
+        if lane_pos(right, left) == 1:
             return straight
         return straight + turn
 
-    if lane_pos(right, left, None) == -1:
+    if lane_pos(right, left) == -1:
         return straight
     return straight - turn
 
@@ -242,7 +191,7 @@ def decision(img, obs):
     if (obs[0] ^ (len(left_obs) != 0)) or (obs[1] ^ (len(right_obs) != 0)):
         obs = [len(left_obs) != 0, len(right_obs) != 0]
 
-        angle = dodge(left, right, obs)
+        angle = dodge(left, right, obs) + 0.01
         print(angle)
         cv2.line(img, (img.shape[1] // 2, img.shape[0] // 2), (img.shape[1] // 2 + int(50 / np.tan(angle)), img.shape[0] // 2 - 50), (0, 255, 0), 2)
         # cv2.line(img, (img.shape[1] // 2, img.shape[0] // 2), (img.shape[1] // 2 + 50, img.shape[0] // 2 + 50), (0, 255, 0), 3)
