@@ -15,13 +15,11 @@ def oversaturated_filter(img):
                 return cv2.cvtColor(hsv_img, cv2.COLOR_HSV2RGB), (i, j)
 
 def resize(img, type):
-    height, width = img.shape[:2]
-
     if type == 'dataset':
-        img = img[30:, :]
+        return img[30: 230, 10:310]
 
-    crop = img[int(height/3):, :]
-    return crop
+    return img[img.shape[0] // 3:]
+
 
 def data_preprocess(file_name):
     res = cv2.imread(file_name)

@@ -6,7 +6,7 @@ from sklearn.mixture import GaussianMixture
 import pickle
 
 N_CLUSTERS = 5
-N_PICS = 189
+N_PICS = 448
 
 
 def load_images():
@@ -14,6 +14,7 @@ def load_images():
     for i in range(1, N_PICS):
         img = preprocess.data_preprocess("road_pic/lane_" + str(i) + ".jpg")
         lane_images.append(img)
+        print(lane_images[i-1].shape)
     pixels = np.reshape(lane_images, (-1, 1))
     return pixels
 
@@ -44,7 +45,7 @@ if __name__ == '__main__':
     # store_model()
     # training = time.time() - start_train
     # print("train time: " + str(training))
-    # test load model
+    # # test load model
 
     start_load_pickle = time.time()
     load_model_pickle()

@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import process
+from collections import deque
 
 
 def cur_pos(img):
@@ -36,6 +37,46 @@ def cur_pos(img):
 
     velo = 60
     return velo, angle
+
+def lane_pos(right, left, img):
+    # count_right, count_left = 0
+    # height, width = img.shape[:2]
+    # check_area = int(height/3)
+    #
+    # for i in range(check_area):
+    #     if right[i][1] == width - 1:
+    #         count_right += 1
+    #     if left[i][1] == 0:
+    #         count_left += 1
+    #
+    # if abs(count_left - count_right) > check_area / 2:
+    #     if count_right > count_left:
+    #         return 'right'
+    #     else:
+    #         return 'left'
+    # else:
+    #     return 'mid'
+    if right[0][1] - left[0][1] < 0:
+        return -1
+    return right[0][1] - left[0][1] > 0
+
+
+def dodge(left, right, obs):
+    straight = (np.arctan(mode(left)) + np.arctan(mode(right))) / 2
+
+    if not (obs[0] ^ obs[1]):
+        return straight
+
+    turn = 0.2
+
+    if obs[0]:
+        if lane_pos(right, left, None) == 1:
+            return straight
+        return straight + turn
+
+    if lane_pos(right, left, None) == -1:
+        return straight
+    return straight - turn
 
 
 def detect_lane_contour(img):
@@ -94,19 +135,19 @@ def detect_lane_contour(img):
 
 def choose_with_kernel(img, position, y, x):
     if position == "right":
-        if img[y - 1][x + 1]:
-            return y - 1, x + 1
         if img[y - 1][x]:
             return y - 1, x
+        if img[y - 1][x + 1]:
+            return y - 1, x + 1
         if img[y - 1][x - 1]:
             return y - 1, x - 1
         return y, x - 1
 
     if position == "left":
-        if img[y - 1][x - 1]:
-            return y - 1, x - 1
         if img[y - 1][x]:
             return y - 1, x
+        if img[y - 1][x - 1]:
+            return y - 1, x - 1
         if img[y - 1][x + 1]:
             return y - 1, x + 1
         return y, x + 1
@@ -117,11 +158,11 @@ def draw_contour(img, lane):
     height, width = img.shape[:2]
 
     for i in range(len(left) - 1):
-        img[left[i][0] + int(height/3), left[i][1]] = (255, 0, 0)
+        img[left[i][0] + height//3, left[i][1]] = (255, 0, 0)
     for i in range(len(right) - 1):
-        img[right[i][0] + int(height/3), right[i][1]-1] = (0, 255, 0)
+        img[right[i][0] + height//3, right[i][1]-1] = (0, 255, 0)
 
-    obs_left, obs_right = detect_obs(left, right)
+    # obs_left, obs_right = detect_obs(left, right)
     # for i in obs_left:
     #     img[left[i][0] + int(height/3), left[i][1]] = (255, 0, 255)
     # for i in obs_right:
@@ -129,25 +170,36 @@ def draw_contour(img, lane):
 
     # cv2.imshow('lane', lane)
     # cv2.imshow("contour", img)
+    #
+    # cv2.waitKey(0)
 
 
 def detect_obs(left, right):
+    r = 40
+
     obs_left = []
-    for i in range(len(left) - 20):
-        dy = (left[i][0] - left[i + 20][0]) / (left[i + 20][1] - left[i][1] + 0.1)
+    for i in range(r, len(left)):
+        dy = (left[i - r][0] - left[i][0]) / (left[i][1] - left[i - r][1] + 0.01)
 
         if dy < 0.2:
-            obs_left.append(i)
+            obs_left.append(left[i])
 
     obs_right = []
-    for i in range(len(right) - 20):
-        dy = (right[i][0] - right[i + 20][0]) / (right[i][1] - right[i + 20][1] + 0.1)
+    for i in range(r, len(right)):
+        dy = (right[i - r][0] - right[i][0]) / (right[i - r][1] - right[i][1] + 0.01)
 
         if dy < 0.2:
-            obs_right.append(i)
+            obs_right.append(right[i])
 
     return obs_left, obs_right
 
+def switch_lane(obs_left, obs_right, lane):
+    new_angle = 0
+    if obs_right:
+        new_angle += -1
+    elif obs_left:
+        new_angle += -1
+    return new_angle
 
 def angle_calculate(right, left):
     left_grad = left[-1] - left[0]
@@ -157,10 +209,62 @@ def angle_calculate(right, left):
     return np.arctan(grad[1] / grad[0])
 
 
-def decision(img):
+def mode(lst):
+    r = 5
+    grad =[]
+    for i in range(r, len(lst)):
+        grad.append((lst[i][0] - lst[i-r][0]) / (lst[i][1] - lst[i-r][1] + 0.01))
+
+    grad.sort()
+
+    res = [0, 0]
+    idx = 0
+    for i, val in enumerate(grad):
+        if abs(val - grad[idx]) > 0.1:
+            if i - idx > res[1] - res[0]:
+                res = [idx, i]
+            while abs(val - grad[idx]) > 0.1:
+                idx = idx + 1
+    if len(grad) - idx > res[1] - res[0]:
+        res = [idx, len(grad)]
+
+    return grad[(res[0] + res[1]) // 2]
+
+
+def decision(img, obs):
     lane = process.detect_lane(img)
+    left, right = detect_lane_contour(lane)
+
     draw_contour(img, lane)
-    left, right = detect_lane_contour(img)
-    velo = 40
-    angle = angle_calculate(right, left)
-    return velo, angle
+
+    left_obs, right_obs = detect_obs(left, right)
+
+    if (obs[0] ^ (len(left_obs) != 0)) or (obs[1] ^ (len(right_obs) != 0)):
+        obs = [len(left_obs) != 0, len(right_obs) != 0]
+
+        angle = dodge(left, right, obs)
+        print(angle)
+        cv2.line(img, (img.shape[1] // 2, img.shape[0] // 2), (img.shape[1] // 2 + int(50 / np.tan(angle)), img.shape[0] // 2 - 50), (0, 255, 0), 2)
+        # cv2.line(img, (img.shape[1] // 2, img.shape[0] // 2), (img.shape[1] // 2 + 50, img.shape[0] // 2 + 50), (0, 255, 0), 3)
+        cv2.imshow('sth', img)
+        cv2.waitKey(0)
+
+
+        # cv2.imshow('lane', lane)
+        # cv2.waitKey(0)
+
+
+    # velo, angle = 0
+
+    # lineThickness = 2
+    # height, width = img.shape[:2]
+    # cv2.line(img, (0, int(2*height/3)), (width, int(2 * height/3)), (0, 255, 0), lineThickness)
+    # print(int(height/3))
+
+    # obstacle
+    # obs_left, obs_right = detect_obs(left, right)
+    # if obs_left == True or obs_right == True:
+    #     angle += switch_lane(obs_left, obs_right, lane)
+
+    # angle = angle_calculate(right, left)
+    # return velo, angle
