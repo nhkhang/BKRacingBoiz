@@ -247,8 +247,6 @@ def decision(img, obs):
     res, mid, delta = mid_lane(left, right, img)
     radian = rad_mid(mid)
     angle = angle_mid(radian, delta)
-    print(angle)
-    draw_contour(img, lane)
     velo = 50
     return velo, angle
     #
