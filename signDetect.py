@@ -22,7 +22,6 @@ turn_mode = 0
 turn_duration = 0
 
 svclassifier = pickle.load(open('/home/nguyendat/catkin_ws/src/test/src/signDetect', 'rb'))
-print("fuck1")
 
 
 def detect_sign(img):
