@@ -74,20 +74,24 @@ def detect_lane_contour(img):
 
     # right and left lane
     while left_lane[-1][0] > 0 and left_lane[-1][1] < right_lane[-1][1]:
-        yy = right_lane[-1][0]
+        yy = min(right_lane[-1][0], left_lane[-1][0])
+
+        right_lane.append(right_lane[-1])
+        left_lane.append(left_lane[-1])
+
         while right_lane[-1][1] != left_lane[-1][1] and right_lane[-1][0] >= yy:
-            right_next = choose_with_kernel(img_padding, "right", right_lane[-1][0], right_lane[-1][1])
-            if right_next[0] == right_lane[-1][0]:
-                right_lane[-1] = right_next
-            else:
-                right_lane.append(right_next)
+            right_lane[-1] = choose_with_kernel(img_padding, "right", right_lane[-1][0], right_lane[-1][1])
 
         while left_lane[-1][1] != right_lane[-1][1] and left_lane[-1][0] >= yy:
-            left_next = choose_with_kernel(img_padding, "left", left_lane[-1][0], left_lane[-1][1])
-            if left_next[0] == left_lane[-1][0]:
-                left_lane[-1] = left_next
-            else:
-                left_lane.append(left_next)
+            left_lane[-1] = choose_with_kernel(img_padding, "left", left_lane[-1][0], left_lane[-1][1])
+
+    right_lane.pop(0)
+    left_lane.pop(0)
+
+    if right_lane[-1][0] < left_lane[-1][0]:
+        right_lane.pop(-1)
+    elif right_lane[-1][0] > left_lane[-1][0]:
+        left_lane.pop(-1)
 
     return left_lane, right_lane
 
@@ -152,6 +156,7 @@ def detect_obs(left, right):
 
     return obs_left, obs_right
 
+
 def switch_lane(obs_left, obs_right, lane):
     new_angle = 0
     if obs_right:
@@ -160,12 +165,14 @@ def switch_lane(obs_left, obs_right, lane):
         new_angle += -1
     return new_angle
 
+
 def angle_calculate(right, left):
     left_grad = left[-1] - left[0]
     right_grad = right[-1] - right[0]
     grad = left_grad + right_grad
 
     return np.arctan(grad[1] / grad[0])
+
 
 def mode(lst):
     r = 5
@@ -189,43 +196,58 @@ def mode(lst):
     return grad[(res[0] + res[1]) // 2]
 
 # CALCULATE ANGLE COMPARE TO MID_LANE
-def rad_mid(mid):
-    A = [0, 0]
-    for i in range(len(mid) - 1):
-        A[0] += mid[i][0] - mid[i+1][0]
-        A[1] += mid[i][1] - mid[i+1][1]
+def mid_vector(mid):
+    if len(mid) > 1:
+        A = [1, 0]
+        for i in range(1, len(mid)):
+            A[1] += (mid[0][1] - mid[i][1]) / (mid[0][0] - mid[i][0])
 
-    A[0] /= len(mid)
-    A[1] /= len(mid)
+        A[1] /= len(mid) - 1
+    else:
+        A = [1, 0]
+
+    # (1, dx/dy)
     return A
 
+
+def position_from_mid(mid_eq, standing_pos):
+    C = 500
+
+    y = mid_eq[0][0] - standing_pos[0]
+    x = mid_eq[0][1] - standing_pos[1]
+
+    temp = x * mid_eq[1][0] + y * mid_eq[1][1]
+
+    # (y, x) / C
+    y = (y - temp * mid_eq[1][0]) / C
+    x = (x - temp * mid_eq[1][1]) / C
+
+    return [y, x]
+
+
 def angle_mid(A, delta):
-    y = A[0] + delta[0]
-    x = A[1] + delta[1]
-    return np.arctan((x/y))
+    C = 1.5
+
+    y = A[0] #+ delta[0]
+    x = A[1] #+ delta[1]
+
+    print('A = ' + str(A))
+    print('d = ' + str(delta))
+
+    print('x = ' + str(x) + ' y= ' + str(y))
+
+    # C * atan(A + d)
+    return C * np.arctan2(x, y)
 
 
 def mid_lane(left_lane, right_lane, img):
     height, width = img.shape[:2]
     mid = []
-    res = 0
-    delta = [0, 0]
-    alpha = 10
 
-    if len(left_lane) < len(right_lane):
-        min_len = len(left_lane)
-    else:
-        min_len = len(right_lane)
-
-    for i in range(min_len):
+    for i in range(len(left_lane)):
         mid.append(((left_lane[i][0] + right_lane[i][0]) / 2, (left_lane[i][1] + right_lane[i][1]) / 2))
-        res += (height - mid[-1][0]) * (mid[-1][1] - width)
-        # print(mid[-1][1])
-        delta[1] += ((width / 2) - mid[-1][1]) * alpha
-        if i % 10 == 0 and alpha > 1:
-            alpha -= 1
 
-    return res, mid, delta
+    return mid
 # END CALCULATE ANGLE COMPARE TO MID_LANE
 
 # TURN TRAFFIC SIGN
@@ -240,16 +262,26 @@ def turn_traffic_sign(sign):
         velo = 40
     return velo, angle
 
+
 def decision(img, obs):
     lane = process.detect_lane(img)
     left, right = detect_lane_contour(lane)
 
-    res, mid, delta = mid_lane(left, right, img)
-    radian = rad_mid(mid)
-    angle = angle_mid(radian, delta)
+    draw_contour(img, lane)
+
+    mid = mid_lane(left, right, img)
+
+    if len(mid) != 0:
+        road_vector = mid_vector(mid)
+        delta = position_from_mid((mid[0], road_vector), (img.shape[0], img.shape[1] / 2))
+    else:
+        road_vector = [1, 0]
+        delta = [0, 0]
+    angle = angle_mid(road_vector, delta)
     velo = 50
     return velo, angle
-    #
+
+
     # left_obs, right_obs = detect_obs(left, right)
     #
     # if (obs[0] ^ (len(left_obs) != 0)) or (obs[1] ^ (len(right_obs) != 0)):
@@ -257,12 +289,3 @@ def decision(img, obs):
     #
     #     angle = dodge(left, right, obs) + 0.01
     #     print(angle)
-    #     cv2.line(img, (img.shape[1] // 2, img.shape[0] // 2), (img.shape[1] // 2 + int(50 / np.tan(angle)), img.shape[0] // 2 - 50), (0, 255, 0), 2)
-    #     # cv2.line(img, (img.shape[1] // 2, img.shape[0] // 2), (img.shape[1] // 2 + 50, img.shape[0] // 2 + 50), (0, 255, 0), 3)
-    #     cv2.imshow('sth', img)
-    #     cv2.waitKey(0)
-
-
-        # cv2.imshow('lane', lane)
-        # cv2.waitKey(0)
-

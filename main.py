@@ -5,7 +5,7 @@ import direction
 import sys
 import time
 
-LIST = [258, 251, 211]
+LIST = [53, 76, 98, 71, 200]
 PIC_ORD = 87
 VID_SRC = 'public4.mp4'
 TEST_SRC = 'road_pic/lane_'+ str(PIC_ORD) + '.jpg'
@@ -33,9 +33,12 @@ def test():
         img = img[30:,:]
         start = time.time()
         obs = [False, False]
-        direction.decision(img, obs)
+        velo, angle = direction.decision(img, obs)
+        print('Angle = ' + str(angle))
         print("Return velo, angle after " + str(time.time() - start))
         print("========")
+        cv2.imshow('img', img)
+        cv2.waitKey(0)
         # cv2.imshow('processing', img)
         # cv2.waitKey(0)
     # img = cv2.imread(TEST_SRC)

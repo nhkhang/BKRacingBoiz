@@ -10,5 +10,7 @@ from matplotlib.patches import Ellipse
 from PIL import Image
 from sklearn import datasets
 from sklearn.cluster import KMeans
-
-print(1 % 10)
+A = [0]
+A[0] = 41
+A[0] = A[0] / 84
+print(A[0])

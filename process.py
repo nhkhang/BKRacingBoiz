@@ -82,8 +82,8 @@ def detect_lane(img):
     after_process, black_point = preprocess.preprocess(img)
     label = gmm_train.predict(after_process) # ok
     cluster = cluster_gmm(img, label)
-    cv2.imshow('cluster', cluster)
-    cv2.waitKey(0)
+    # cv2.imshow('cluster', cluster)
+    # cv2.waitKey(0)
     start_rm_bkgr = time.time()
     lane_bin = remove_backfround(after_process, label, black_point)
     print("Remove background in " + str(time.time() - start_rm_bkgr))
