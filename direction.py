@@ -202,10 +202,10 @@ def mid_vector(mid):
         rad = 0
         for i in range(1, len(mid)):
             rad += np.arctan2(mid[i][1] - mid[0][1], mid[0][0] - mid[i][0])
-            try:
-                A[1] += (mid[i][1] - mid[0][1]) / (mid[0][0] - mid[i][0])
-            except ZeroDivisionError:
-                continue
+            # try:
+            A[1] += (mid[i][1] - mid[0][1]) / (mid[0][0] - mid[i][0])
+            # except ZeroDivisionError:
+            #     continue
 
         A[1] /= len(mid) - 1
         rad /= len(mid) - 1
@@ -269,6 +269,11 @@ def turn_traffic_sign(sign):
         velo = 40
     return velo, angle
 
+#
+# def obs_side(left, right):
+#     for i in range(2, len(left) - 2):
+
+
 
 def decision(img):
     lane = process.detect_lane(img)
@@ -276,6 +281,7 @@ def decision(img):
 
     mid = mid_lane(left, right, img)
 
+    cv2.imshow('lane', lane)
     draw_contour(img, left, right, mid)
 
     if len(mid) != 0:

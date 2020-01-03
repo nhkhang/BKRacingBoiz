@@ -3,6 +3,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
+import gmm_train
+import direction
+import sys
+import time
 import pickle
 # from sklearn.model_selection import train_test_split
 # from sklearn.svm import SVC
@@ -13,15 +17,15 @@ import pickle
 
 # bridge = CvBridge()
 
+
 SIGN_SIZE = 500
-TURN_SPEED = 40
-TURN_ANGLE = np.pi / 2
+TURN_SPEED = 30
+TURN_ANGLE = 7
 TURN_TIME = 4
 
-turn_mode = 0
-turn_duration = 0
+turn_start = 0
 
-svclassifier = pickle.load(open('/home/nguyendat/catkin_ws/src/test/src/signDetect', 'rb'))
+# svclassifier = pickle.load(open('/home/nguyendat/catkin_ws/src/test/src/signDetect', 'rb'))
 
 
 def detect_sign(img):
@@ -80,8 +84,8 @@ def turn(sign_size, sign_type):
     if sign_size is None:
         return TURN_SPEED, turn.angle
 
-    global turn_duration
-    turn_duration = TURN_TIME
+    global turn_start
+    turn_start = time.time()
 
     if sign_type == 'right':
         turn.angle = TURN_ANGLE
@@ -92,10 +96,10 @@ def turn(sign_size, sign_type):
 
 
 def image_callback(ros_data):
-    global turn_duration, turn_mode
+    global turn_start
 
     # if still in turning , keep it going
-    if turn_duration != 0:
+    if time.time() - turn_start <= TURN_TIME:
         return turn(None, None)
 
     # get image data
@@ -111,9 +115,9 @@ def image_callback(ros_data):
         turn_mode = sign != 'nochange'
 
     if turn_mode:
-        turn(sign_size, sign)
-    else:
-        forward()
+        return turn(sign_size, sign)
+
+    return direction.decision(frame[30:])
 
     # other decisions
 
