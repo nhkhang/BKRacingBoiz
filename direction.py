@@ -211,7 +211,7 @@ def mid_vector(mid):
 
 
 def position_from_mid(mid_eq, standing_pos):
-    C = 500
+    C = 400
 
     y = mid_eq[0][0] - standing_pos[0]
     x = mid_eq[0][1] - standing_pos[1]
@@ -219,17 +219,17 @@ def position_from_mid(mid_eq, standing_pos):
     temp = x * mid_eq[1][0] + y * mid_eq[1][1]
 
     # (y, x) / C
-    y = (y - temp * mid_eq[1][0]) / C
-    x = (x - temp * mid_eq[1][1]) / C
+    y = (y - temp * mid_eq[1][0])
+    x = (x - temp * mid_eq[1][1])
 
-    return [y, x]
+    return [y/C, x/C]
 
 
 def angle_mid(A, delta):
     C = 1.5
 
-    y = A[0] #+ delta[0]
-    x = A[1] #+ delta[1]
+    y = A[0] + delta[0]
+    x = A[1] + delta[1]
 
     print('A = ' + str(A))
     print('d = ' + str(delta))
@@ -237,7 +237,7 @@ def angle_mid(A, delta):
     print('x = ' + str(x) + ' y= ' + str(y))
 
     # C * atan(A + d)
-    return C * np.arctan2(x, y)
+    return -C * np.arctan2(x, y)
 
 
 def mid_lane(left_lane, right_lane, img):
@@ -263,11 +263,9 @@ def turn_traffic_sign(sign):
     return velo, angle
 
 
-def decision(img, obs):
+def decision(img):
     lane = process.detect_lane(img)
     left, right = detect_lane_contour(lane)
-
-    draw_contour(img, lane)
 
     mid = mid_lane(left, right, img)
 
@@ -277,15 +275,8 @@ def decision(img, obs):
     else:
         road_vector = [1, 0]
         delta = [0, 0]
+
     angle = angle_mid(road_vector, delta)
     velo = 50
+
     return velo, angle
-
-
-    # left_obs, right_obs = detect_obs(left, right)
-    #
-    # if (obs[0] ^ (len(left_obs) != 0)) or (obs[1] ^ (len(right_obs) != 0)):
-    #     obs = [len(left_obs) != 0, len(right_obs) != 0]
-    #
-    #     angle = dodge(left, right, obs) + 0.01
-    #     print(angle)
