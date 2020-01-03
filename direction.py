@@ -273,7 +273,14 @@ def turn_traffic_sign(sign):
 # def obs_side(left, right):
 #     for i in range(2, len(left) - 2):
 
-
+def detect_obstable(left, right):
+    pre_delta = 0
+    for i in range(len(left)):
+        delta = right[i][1] - left[i][1]
+        if abs(delta - pre_delta) > pre_delta / 2:
+            print('DODGE PLEASE')
+        pre_delta = delta
+        i += 30
 
 def decision(img):
     lane = process.detect_lane(img)
